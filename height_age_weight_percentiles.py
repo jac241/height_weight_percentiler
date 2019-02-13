@@ -5,22 +5,32 @@ import numpy as np
 import scipy.stats as stats
 
 nsqip = '~/research/PNSQIP_CPT_abbreviated.xlsx'
-wtage = os.path.expanduser('./wtageinf.xls')
+wtage = os.path.expanduser('./wtagecombined.xlsx')
+lnage = os.path.expanduser('./lengthstaturecombinedat24_5months.xlsx')
+
 
 POUNDS_TO_KG = 2.20462262185
+INCHES_TO_CM = 2.54
+
 
 def main():
     nsqip_xl = pd.ExcelFile(nsqip)
     nsqip_df = nsqip_xl.parse('Sheet1')
-    nsqip_df = nsqip_df[(nsqip_df.AGE_DAYS < (24 * 30))]
 
-    wtage_df = get_cdc_dataframe(wtage, 'wtageinf')
+    wtage_df = get_cdc_dataframe(wtage, 'Sheet1')
+    lnage_df = get_cdc_dataframe(lnage, 'Sheet1')
     add_string_male_female(wtage_df)
+    add_string_male_female(lnage_df)
 
-    print("Calculating Percentiles...")
+    print("Calculating Weight Percentiles...")
     nsqip_df['wtpercentile'] = calculate_percentiles_for_weight(nsqip_df, wtage_df)
+
+    print("Calculating Height Percentiles...")
+    nsqip_df['htpercentile'] = calculate_percentiles_for_height(nsqip_df, lnage_df)
+
     return nsqip_df
     
+
 def get_cdc_dataframe(path, sheet_name):
     return pd.ExcelFile(path).parse(sheet_name)
 
@@ -36,7 +46,6 @@ def build_percentile_map(path):
 
 def skip_header(csvreader):
     next(csvreader, None)
-
 
 
 def get_nsqip_dataframe(path):
@@ -91,6 +100,24 @@ def calculate_percentiles_for_weight(nsqip_df, cdc_df):
             )
 
     return nsqip_df.apply(percentile_per_row, axis=1)
+
+
+def calculate_percentiles_for_height(nsqip_df, cdc_df):
+    def percentile_per_row(row):
+        if row['HEIGHT'] < 0:
+            return row['HEIGHT']
+        else:
+            return percentile_for_zscore(
+                zscore_for_age_in_months_and_sex(
+                    cdc_df,
+                    row['HEIGHT'] * INCHES_TO_CM,
+                    age_in_days_to_months(row['AGE_DAYS']),
+                    row['SEX']
+                )
+            )
+
+    return nsqip_df.apply(percentile_per_row, axis=1)
+
 
 if __name__ == '__main__':
     nsqip_df = main()
