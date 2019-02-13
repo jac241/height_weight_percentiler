@@ -35,19 +35,6 @@ def get_cdc_dataframe(path, sheet_name):
     return pd.ExcelFile(path).parse(sheet_name)
 
 
-def build_percentile_map(path):
-   with open(path) as csvfile:
-       reader = csv.reader(csvfile)
-       skip_header(reader)
-
-       for row in reader:
-           print(', '.join(row))
-    
-
-def skip_header(csvreader):
-    next(csvreader, None)
-
-
 def get_nsqip_dataframe(path):
     nsqip_xl = pd.ExcelFile(nsqip)
     nsqip_df = nsqip_xl.parse('Sheet1')
